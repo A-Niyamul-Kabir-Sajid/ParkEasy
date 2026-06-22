@@ -44,7 +44,8 @@
                                 </span>
                             </td>
                             <td class="px-4 py-2 text-right">
-                                <a href="{{ route('owner.parking-lots.edit', $row) }}" class="underline">Edit</a>
+                                <a href="{{ route('owner.parking-lots.bookings', $row) }}" class="underline">Bookings</a>
+                                <a href="{{ route('owner.parking-lots.edit', $row) }}" class="ml-2 underline">Edit</a>
                                 <form method="POST" action="{{ route('owner.parking-lots.destroy', $row) }}" class="inline"
                                     onsubmit="return confirm('Delete this parking lot?');">
                                     @csrf

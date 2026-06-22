@@ -54,4 +54,20 @@ class User extends Authenticatable
     {
         return $this->hasMany(ParkingLot::class, 'owner_id');
     }
+
+    /**
+     * @return HasMany<Booking, $this>
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class, 'driver_id');
+    }
+
+    /**
+     * @return HasMany<Review, $this>
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class, 'driver_id');
+    }
 }

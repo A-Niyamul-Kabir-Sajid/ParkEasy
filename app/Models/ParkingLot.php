@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
@@ -76,5 +77,25 @@ class ParkingLot extends Model
     public function isPending(): bool
     {
         return $this->verification_status === ParkingLotVerificationStatus::Pending;
+    }
+
+    /**
+     * @return HasMany<Review, $this>
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function averageRating(): ?float
+    {
+        $avg = $this->reviews()->avg('rating');
+
+        return $avg === null ? null : round((float) $avg, 2);
+    }
+
+    public function reviewCount(): int
+    {
+        return (int) $this->reviews()->count();
     }
 }

@@ -60,6 +60,18 @@
                         </div>
                     </dl>
 
+                    @php
+                        $avg = $lot->averageRating();
+                        $count = $lot->reviewCount();
+                    @endphp
+                    @if ($avg !== null)
+                        <p class="mt-2 flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
+                            <span class="text-amber-500">&#9733;</span>
+                            <span class="font-medium">{{ number_format($avg, 1) }}</span>
+                            <span>({{ $count }} {{ Str::plural('review', $count) }})</span>
+                        </p>
+                    @endif
+
                     @if ($lot->owner)
                         <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
                             Managed by {{ $lot->owner->name }}

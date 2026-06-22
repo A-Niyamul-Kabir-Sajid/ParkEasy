@@ -4,7 +4,25 @@
         Welcome back, {{ auth()->user()->name }}. Find and book verified parking near you.
     </p>
 
-    <div class="mt-8 rounded border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700">
-        Search and bookings land in Stages 4–5.
+    @php
+        $upcomingCount = auth()->user()->bookings()
+            ->where('status', 'active')
+            ->where('start_time', '>=', now())
+            ->count();
+    @endphp
+
+    <div class="mt-8 grid gap-4 sm:grid-cols-2">
+        <a href="{{ route('parking-lots.browse') }}"
+            class="rounded border border-slate-200 bg-white p-5 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700">
+            <h2 class="text-base font-semibold">Browse parking</h2>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Find a verified spot near you.</p>
+        </a>
+        <a href="{{ route('driver.bookings.index') }}"
+            class="rounded border border-slate-200 bg-white p-5 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700">
+            <h2 class="text-base font-semibold">My bookings</h2>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                {{ $upcomingCount }} upcoming {{ \Illuminate\Support\Str::plural('booking', $upcomingCount) }}.
+            </p>
+        </a>
     </div>
 </x-layout>
