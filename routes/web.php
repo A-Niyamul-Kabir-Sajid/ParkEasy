@@ -27,8 +27,12 @@ Route::middleware('auth')->group(function (): void {
 
     Route::middleware('role:owner')->prefix('owner')->name('owner.')->group(function (): void {
         Route::get('/dashboard', [DashboardController::class, 'owner'])->name('dashboard');
-        Route::get('/parking-lots/create', [ParkingLotController::class, 'create']);
-        Route::post('/parking-lots', [ParkingLotController::class, 'store']);
+        Route::get('/parking-lots', [ParkingLotController::class, 'index'])->name('parking-lots.index');
+        Route::get('/parking-lots/create', [ParkingLotController::class, 'create'])->name('parking-lots.create');
+        Route::post('/parking-lots', [ParkingLotController::class, 'store'])->name('parking-lots.store');
+        Route::get('/parking-lots/{parking_lot}/edit', [ParkingLotController::class, 'edit'])->name('parking-lots.edit');
+        Route::put('/parking-lots/{parking_lot}', [ParkingLotController::class, 'update'])->name('parking-lots.update');
+        Route::delete('/parking-lots/{parking_lot}', [ParkingLotController::class, 'destroy'])->name('parking-lots.destroy');
     });
 
     Route::middleware('role:driver')->prefix('driver')->name('driver.')->group(function (): void {
