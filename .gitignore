@@ -25,3 +25,10 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Plan / guide / agent scratch
+.puku/
+*.plan.md
+.plan.md
+docs/plans/
+/docs/guides/
