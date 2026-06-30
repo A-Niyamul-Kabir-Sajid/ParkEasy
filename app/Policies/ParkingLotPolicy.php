@@ -31,4 +31,9 @@ class ParkingLotPolicy
     {
         return $user->isOwner() && $user->id === $parkingLot->owner_id;
     }
+
+    public function verify(User $user, ParkingLot $parkingLot): bool
+    {
+        return $user->isAdmin();
+    }
 }

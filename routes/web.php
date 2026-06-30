@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ParkingLotVerificationController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DashboardRedirectController;
@@ -23,6 +24,9 @@ Route::middleware('auth')->group(function (): void {
 
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function (): void {
         Route::get('/dashboard', [DashboardController::class, 'admin'])->name('dashboard');
+        Route::get('/verification', [ParkingLotVerificationController::class, 'index'])->name('verification.index');
+        Route::post('/verification/{parking_lot}/approve', [ParkingLotVerificationController::class, 'approve'])->name('verification.approve');
+        Route::post('/verification/{parking_lot}/reject', [ParkingLotVerificationController::class, 'reject'])->name('verification.reject');
     });
 
     Route::middleware('role:owner')->prefix('owner')->name('owner.')->group(function (): void {
