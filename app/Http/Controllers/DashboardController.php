@@ -3,20 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
+use App\Services\OwnerRevenueService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    public function __construct(private readonly OwnerRevenueService $revenue) {}
+
     public function admin(): View
     {
         return view('dashboard.admin');
     }
 
-    public function owner(): View
+    public function owner(Request $request): View
     {
-        return view('dashboard.owner');
+        $snapshot = $this->revenue->snapshotFor($request->user());
+
+        return view('dashboard.owner', [
+            'revenue' => $snapshot,
+        ]);
     }
 
     public function driver(): View
