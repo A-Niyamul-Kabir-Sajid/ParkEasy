@@ -37,6 +37,7 @@ class ParkingLot extends Model
         'total_capacity',
         'available_spots',
         'verification_status',
+        'rejection_reason',
     ];
 
     /**

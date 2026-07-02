@@ -47,12 +47,20 @@
                                         Approve
                                     </button>
                                 </form>
-                                <form method="POST" action="{{ route('admin.verification.reject', $row) }}" class="inline" onsubmit="return confirm('Reject this parking lot?');">
-                                    @csrf
-                                    <button type="submit" class="ml-1 rounded bg-rose-600 px-3 py-1 text-xs font-medium text-white hover:bg-rose-500">
-                                        Reject
-                                    </button>
-                                </form>
+                                <details class="ml-1 inline-block text-left">
+                                    <summary class="inline-block cursor-pointer rounded bg-rose-600 px-3 py-1 text-xs font-medium text-white hover:bg-rose-500">Reject</summary>
+                                    <form method="POST" action="{{ route('admin.verification.reject', $row) }}" class="mt-2 w-72 rounded border border-slate-300 bg-white p-3 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                                        @csrf
+                                        <label class="block text-slate-700 dark:text-slate-300" for="reason-{{ $row->id }}">Reason (sent to owner)</label>
+                                        <textarea id="reason-{{ $row->id }}" name="reason" rows="3" required minlength="5" maxlength="1000" class="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-800">{{ old('reason') }}</textarea>
+                                        @error('reason')
+                                            <p class="mt-1 text-rose-600">{{ $message }}</p>
+                                        @enderror
+                                        <button type="submit" class="mt-2 rounded bg-rose-600 px-3 py-1 text-xs font-medium text-white hover:bg-rose-500" onclick="return confirm('Reject this parking lot?');">
+                                            Confirm rejection
+                                        </button>
+                                    </form>
+                                </details>
                             </td>
                         </tr>
                     @endforeach
@@ -70,6 +78,7 @@
                         <th class="px-4 py-2 font-medium">Lot</th>
                         <th class="px-4 py-2 font-medium">Owner</th>
                         <th class="px-4 py-2 font-medium">Status</th>
+                        <th class="px-4 py-2 font-medium">Reason</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -88,6 +97,9 @@
                                 <span class="inline-flex rounded px-2 py-0.5 text-xs font-medium {{ $statusStyles }}">
                                     {{ ucfirst($row->verification_status->value) }}
                                 </span>
+                            </td>
+                            <td class="px-4 py-2 text-xs text-slate-600 dark:text-slate-400">
+                                {{ $row->rejection_reason ?? '—' }}
                             </td>
                         </tr>
                     @endforeach

@@ -353,3 +353,140 @@ it('exposes the bookings link to lot owners on the public lot page', function ()
         ->assertOk()
         ->assertSee('View bookings');
 });
+
+it('auto-completes active bookings whose end time has passed and frees a spot', function (): void {
+    $driver = User::factory()->asDriver()->create();
+    $lot = ParkingLot::factory()->verified()->create([
+        'total_capacity' => 5,
+        'available_spots' => 4,
+    ]);
+    $expired = Booking::factory()->create([
+        'driver_id' => $driver->id,
+        'parking_lot_id' => $lot->id,
+        'start_time' => Carbon::now()->subHours(3),
+        'end_time' => Carbon::now()->subHour(),
+        'status' => BookingStatus::Active,
+    ]);
+
+    $this->artisan('bookings:complete-expired')
+        ->expectsOutputToContain('Completed 1 expired booking(s).')
+        ->assertSuccessful();
+
+    $expired->refresh();
+    $lot->refresh();
+
+    expect($expired->status)->toBe(BookingStatus::Completed);
+    expect((int) $lot->available_spots)->toBe(5);
+});
+
+it('does not touch active bookings that have not ended yet', function (): void {
+    $driver = User::factory()->asDriver()->create();
+    $lot = ParkingLot::factory()->verified()->create([
+        'total_capacity' => 5,
+        'available_spots' => 4,
+    ]);
+    $ongoing = Booking::factory()->create([
+        'driver_id' => $driver->id,
+        'parking_lot_id' => $lot->id,
+        'start_time' => Carbon::now()->subMinutes(30),
+        'end_time' => Carbon::now()->addHour(),
+        'status' => BookingStatus::Active,
+    ]);
+
+    $this->artisan('bookings:complete-expired')
+        ->expectsOutputToContain('Completed 0 expired booking(s).')
+        ->assertSuccessful();
+
+    $ongoing->refresh();
+    $lot->refresh();
+
+    expect($ongoing->status)->toBe(BookingStatus::Active);
+    expect((int) $lot->available_spots)->toBe(4);
+});
+
+it('only flips bookings from the active scope when auto-completing', function (): void {
+    $driver = User::factory()->asDriver()->create();
+    $lot = ParkingLot::factory()->verified()->create([
+        'total_capacity' => 5,
+        'available_spots' => 5,
+    ]);
+    $cancelled = Booking::factory()->cancelled()->create([
+        'driver_id' => $driver->id,
+        'parking_lot_id' => $lot->id,
+        'start_time' => Carbon::now()->subHours(5),
+        'end_time' => Carbon::now()->subHours(2),
+    ]);
+    $alreadyCompleted = Booking::factory()->completed()->create([
+        'driver_id' => $driver->id,
+        'parking_lot_id' => $lot->id,
+        'start_time' => Carbon::now()->subHours(5),
+        'end_time' => Carbon::now()->subHours(1),
+    ]);
+
+    $this->artisan('bookings:complete-expired')->assertSuccessful();
+
+    $cancelled->refresh();
+    $alreadyCompleted->refresh();
+    $lot->refresh();
+
+    expect($cancelled->status)->toBe(BookingStatus::Cancelled);
+    expect($alreadyCompleted->status)->toBe(BookingStatus::Completed);
+    expect((int) $lot->available_spots)->toBe(5);
+});
+
+it('is idempotent when run twice for the same expired booking', function (): void {
+    $driver = User::factory()->asDriver()->create();
+    $lot = ParkingLot::factory()->verified()->create([
+        'total_capacity' => 3,
+        'available_spots' => 2,
+    ]);
+    Booking::factory()->create([
+        'driver_id' => $driver->id,
+        'parking_lot_id' => $lot->id,
+        'start_time' => Carbon::now()->subHours(2),
+        'end_time' => Carbon::now()->subHour(),
+        'status' => BookingStatus::Active,
+    ]);
+
+    $this->artisan('bookings:complete-expired')
+        ->expectsOutputToContain('Completed 1 expired booking(s).')
+        ->assertSuccessful();
+
+    $this->artisan('bookings:complete-expired')
+        ->expectsOutputToContain('Completed 0 expired booking(s).')
+        ->assertSuccessful();
+
+    $lot->refresh();
+    expect((int) $lot->available_spots)->toBe(3);
+});
+
+it('restores one available spot per expired booking across multiple lots', function (): void {
+    $driver = User::factory()->asDriver()->create();
+    $lotA = ParkingLot::factory()->verified()->create([
+        'total_capacity' => 4,
+        'available_spots' => 2,
+    ]);
+    $lotB = ParkingLot::factory()->verified()->create([
+        'total_capacity' => 6,
+        'available_spots' => 5,
+    ]);
+    Booking::factory()->create([
+        'driver_id' => $driver->id,
+        'parking_lot_id' => $lotA->id,
+        'start_time' => Carbon::now()->subHours(3),
+        'end_time' => Carbon::now()->subHour(),
+        'status' => BookingStatus::Active,
+    ]);
+    Booking::factory()->create([
+        'driver_id' => $driver->id,
+        'parking_lot_id' => $lotB->id,
+        'start_time' => Carbon::now()->subHours(2),
+        'end_time' => Carbon::now()->subMinutes(5),
+        'status' => BookingStatus::Active,
+    ]);
+
+    $this->artisan('bookings:complete-expired')->assertSuccessful();
+
+    expect((int) $lotA->fresh()->available_spots)->toBe(3);
+    expect((int) $lotB->fresh()->available_spots)->toBe(6);
+});

@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\ParkingLotVerificationStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\RejectParkingLotRequest;
 use App\Models\ParkingLot;
+use App\Notifications\ParkingLotRejectedNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -54,7 +56,7 @@ class ParkingLotVerificationController extends Controller
             ->with('status', 'Parking lot approved.');
     }
 
-    public function reject(Request $request, ParkingLot $parking_lot): RedirectResponse
+    public function reject(RejectParkingLotRequest $request, ParkingLot $parking_lot): RedirectResponse
     {
         $this->authorize('verify', $parking_lot);
 
@@ -64,9 +66,16 @@ class ParkingLotVerificationController extends Controller
                 ->with('status', 'Only pending lots can be rejected.');
         }
 
+        $reason = $request->validated()['reason'];
+
         $parking_lot->update([
             'verification_status' => ParkingLotVerificationStatus::Rejected,
+            'rejection_reason' => $reason,
         ]);
+
+        if ($parking_lot->owner !== null) {
+            $parking_lot->owner->notify(new ParkingLotRejectedNotification($parking_lot, $reason));
+        }
 
         return redirect()
             ->route('admin.verification.index')
