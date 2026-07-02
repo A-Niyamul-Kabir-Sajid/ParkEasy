@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\ParkingLot;
 use App\Models\User;
 use App\Notifications\BookingConfirmedNotification;
+use App\Notifications\BookingReceivedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
@@ -136,6 +137,38 @@ it('does not send the notification when booking creation fails', function (): vo
         ->assertSessionHasErrors(['start_time']);
 
     Notification::assertNothingSent();
+});
+
+it('sends a booking received notification to the lot owner', function (): void {
+    Notification::fake();
+
+    $owner = User::factory()->asOwner()->create();
+    $driver = User::factory()->asDriver()->create();
+    $lot = ParkingLot::factory()->forOwner($owner)->verified()->create([
+        'total_capacity' => 5,
+        'available_spots' => 5,
+        'hourly_rate' => 50,
+    ]);
+
+    $start = Carbon::now()->addHours(2)->format('Y-m-d\TH:i');
+
+    $this->actingAs($driver)
+        ->post(route('driver.bookings.store', $lot), [
+            'parking_lot_id' => $lot->id,
+            'start_time' => $start,
+            'duration_hours' => 2,
+        ])
+        ->assertRedirect();
+
+    Notification::assertSentTo(
+        $owner,
+        BookingReceivedNotification::class,
+        function (BookingReceivedNotification $notification) use ($lot): bool {
+            return $notification->booking->parking_lot_id === $lot->id;
+        },
+    );
+
+    Notification::assertSentTo($driver, BookingConfirmedNotification::class);
 });
 
 it('rejects invalid booking input', function (): void {

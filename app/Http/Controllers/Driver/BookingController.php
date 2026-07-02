@@ -9,6 +9,7 @@ use App\Http\Requests\Booking\StoreBookingRequest;
 use App\Models\Booking;
 use App\Models\ParkingLot;
 use App\Notifications\BookingConfirmedNotification;
+use App\Notifications\BookingReceivedNotification;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -64,9 +65,14 @@ class BookingController extends Controller
             return $booking;
         });
 
-        $booking->loadMissing('parkingLot');
+        $booking->loadMissing('parkingLot', 'driver');
 
         $request->user()->notify(new BookingConfirmedNotification($booking));
+
+        $owner = $booking->parkingLot?->owner;
+        if ($owner !== null) {
+            $owner->notify(new BookingReceivedNotification($booking));
+        }
 
         return to_route('driver.bookings.show', $booking)
             ->with('status', 'Booking confirmed.');
