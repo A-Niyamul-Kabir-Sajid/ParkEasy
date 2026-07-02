@@ -5,8 +5,10 @@ use App\Enums\ParkingLotVerificationStatus;
 use App\Models\Booking;
 use App\Models\ParkingLot;
 use App\Models\User;
+use App\Notifications\BookingConfirmedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Notification;
 
 uses(RefreshDatabase::class);
 
@@ -91,6 +93,49 @@ it('creates a booking and decrements available spots', function (): void {
     $lot->refresh();
 
     expect((int) $lot->available_spots)->toBe(4);
+});
+
+it('sends a booking confirmation notification to the driver', function (): void {
+    Notification::fake();
+
+    $driver = User::factory()->asDriver()->create();
+    $lot = ParkingLot::factory()->verified()->create(['total_capacity' => 5, 'available_spots' => 5, 'hourly_rate' => 50]);
+
+    $start = Carbon::now()->addHours(2)->format('Y-m-d\TH:i');
+
+    $this->actingAs($driver)
+        ->post(route('driver.bookings.store', $lot), [
+            'parking_lot_id' => $lot->id,
+            'start_time' => $start,
+            'duration_hours' => 2,
+        ])
+        ->assertRedirect();
+
+    Notification::assertSentTo(
+        $driver,
+        BookingConfirmedNotification::class,
+        function (BookingConfirmedNotification $notification) use ($driver): bool {
+            return $notification->booking->driver_id === $driver->id;
+        },
+    );
+});
+
+it('does not send the notification when booking creation fails', function (): void {
+    Notification::fake();
+
+    $driver = User::factory()->asDriver()->create();
+    $lot = ParkingLot::factory()->verified()->create();
+
+    $this->actingAs($driver)
+        ->from(route('driver.bookings.create', $lot))
+        ->post(route('driver.bookings.store', $lot), [
+            'parking_lot_id' => $lot->id,
+            'start_time' => Carbon::now()->subHour()->format('Y-m-d\TH:i'),
+            'duration_hours' => 2,
+        ])
+        ->assertSessionHasErrors(['start_time']);
+
+    Notification::assertNothingSent();
 });
 
 it('rejects invalid booking input', function (): void {
