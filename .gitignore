@@ -32,3 +32,5 @@ Thumbs.db
 .plan.md
 docs/plans/
 /docs/guides/
+pest_output.txt
+test_output.txt
